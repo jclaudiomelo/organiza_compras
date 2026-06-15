@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <include domain="database" path="organiza_compras.db"/>
+    <include domain="database" path="organiza_compras.db-journal"/>
+    <include domain="database" path="organiza_compras.db-shm"/>
+    <include domain="database" path="organiza_compras.db-wal"/>
+</full-backup-content>
