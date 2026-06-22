@@ -205,7 +205,9 @@ class _HomeScreenState extends State<HomeScreen> {
           backgroundColor: const Color(0xFF0F0E17),
           body: widget.controller.isLoading
               ? const Center(child: CircularProgressIndicator(color: Colors.deepPurpleAccent))
-              : SafeArea(
+              : widget.controller.errorMessage != null
+                  ? Center(child: Text(widget.controller.errorMessage!, style: const TextStyle(color: Colors.redAccent)))
+                  : SafeArea(
                   child: RefreshIndicator(
                     color: Colors.deepPurpleAccent,
                     onRefresh: widget.controller.loadPurchases,

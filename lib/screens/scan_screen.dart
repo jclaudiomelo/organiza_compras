@@ -139,211 +139,220 @@ class _ScanScreenState extends State<ScanScreen> {
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) {
-        return Dialog.fullscreen(
-          key: const Key('webview_dialog'),
-          child: Column(
-            children: [
-              AppBar(
-                backgroundColor: const Color(0xFF16161A),
-                title: const Text('Consultando Nota', style: TextStyle(color: Colors.white, fontSize: 16)),
-                leading: IconButton(
-                  icon: const Icon(Icons.close, color: Colors.white),
-                  onPressed: () {
-                    Navigator.pop(dialogContext);
-                    setState(() {
-                      _isProcessing = false;
-                    });
-                    _scannerController.start();
-                  },
-                ),
-                actions: const [
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Center(
-                      child: Text(
-                        'Resolva o CAPTCHA se solicitado',
-                        style: TextStyle(color: Colors.orangeAccent, fontSize: 12, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              Expanded(
-                child: InAppWebView(
-                  initialUrlRequest: URLRequest(url: WebUri(url)),
-                  initialSettings: InAppWebViewSettings(
-                    javaScriptEnabled: true,
-                    domStorageEnabled: true,
-                    databaseEnabled: true,
-                    mixedContentMode: MixedContentMode.MIXED_CONTENT_ALWAYS_ALLOW,
-                  ),
-                  onReceivedServerTrustAuthRequest: (controller, challenge) async {
-                    return ServerTrustAuthResponse(action: ServerTrustAuthResponseAction.PROCEED);
-                  },
-                  onWebViewCreated: (webViewController) {
-                    webViewController.addJavaScriptHandler(
-                      handlerName: 'onReceiptLoaded',
-                      callback: (args) async {
-                        final htmlContent = args[0] as String;
-                        // Close webview dialog safely using dialogContext
+        InAppWebViewController? webViewController;
+        bool isSaving = false;
+
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return Dialog.fullscreen(
+              key: const Key('webview_dialog'),
+              child: Column(
+                children: [
+                  AppBar(
+                    backgroundColor: const Color(0xFF16161A),
+                    title: const Text('Consultando Nota', style: TextStyle(color: Colors.white, fontSize: 16)),
+                    leading: IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white),
+                      onPressed: () {
                         Navigator.pop(dialogContext);
-                        // Parse and process HTML
-                        _processHtmlContent(htmlContent, url);
+                        setState(() {
+                          _isProcessing = false;
+                        });
+                        _scannerController.start();
                       },
-                    );
-                  },
-                  onLoadStop: (webViewController, loadedUrl) async {
-                    // 1. Inject Auto-fill script & auto-click tab or query button if no captcha
-                    await webViewController.evaluateJavascript(source: """
-                      (function() {
-                        try {
-                          // Try to extract the 44-digit key from current URL or query params
-                          var urlParams = new URLSearchParams(window.location.search);
-                          var key = urlParams.get('chave') || urlParams.get('chNFe') || urlParams.get('p') || urlParams.get('chKey');
-                          if (!key) {
-                            var match = window.location.href.match(/\\d{44}/);
-                            if (match) key = match[0];
-                          }
-                          
-                          if (key && key.length === 44) {
-                            // Find any text/number inputs
-                            var inputs = document.querySelectorAll('input[type="text"], input[type="number"], input:not([type])');
-                            var keyInput = null;
-                            for (var i = 0; i < inputs.length; i++) {
-                              var input = inputs[i];
-                              var id = (input.id || '').toLowerCase();
-                              var name = (input.name || '').toLowerCase();
-                              var placeholder = (input.placeholder || '').toLowerCase();
-                              var maxlen = input.getAttribute('maxlength');
-                              
-                              if (maxlen === '44' || maxlen === '48' || 
-                                  id.includes('chave') || name.includes('chave') || placeholder.includes('chave') || 
-                                  id.includes('chnfe') || name.includes('chnfe') || placeholder.includes('chnfe') || 
-                                  id.includes('nfe') || name.includes('nfe') || placeholder.includes('nota')) {
-                                keyInput = input;
-                                break;
+                    ),
+                    actions: [
+                      if (isSaving)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 16.0),
+                          child: Center(
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                            ),
+                          ),
+                        )
+                      else
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8.0),
+                          child: Center(
+                            child: ElevatedButton.icon(
+                              onPressed: webViewController == null
+                                  ? null
+                                  : () async {
+                                      final messenger = ScaffoldMessenger.of(context);
+                                      final navigator = Navigator.of(dialogContext);
+                                      final screenNavigator = Navigator.of(this.context);
+                                      
+                                      setStateDialog(() {
+                                        isSaving = true;
+                                      });
+                                      try {
+                                        final currentUrl = (await webViewController!.getUrl())?.toString() ?? url;
+                                        final htmlContent = await webViewController!.getHtml() ?? '';
+                                        
+                                        // Parse the HTML content
+                                        final purchase = SefazParser.parseHtmlContent(htmlContent, currentUrl);
+                                        
+                                        // Check duplicates
+                                        final alreadyExists = widget.controller.purchases.any((p) => p.accessKey == purchase.accessKey);
+                                        if (alreadyExists) {
+                                          messenger.showSnackBar(
+                                            const SnackBar(
+                                              content: Text('Esta nota fiscal já foi importada anteriormente!'),
+                                              backgroundColor: Colors.orange,
+                                            ),
+                                          );
+                                          setStateDialog(() {
+                                            isSaving = false;
+                                          });
+                                          return;
+                                        }
+
+                                        // Save to database
+                                        final success = await widget.controller.savePurchase(purchase);
+                                        if (success) {
+                                          messenger.showSnackBar(
+                                            const SnackBar(
+                                              content: Text('Compra importada e salva com sucesso!'),
+                                              backgroundColor: Colors.green,
+                                            ),
+                                          );
+                                          navigator.pop();
+                                          screenNavigator.pop(true);
+                                        } else {
+                                          messenger.showSnackBar(
+                                            SnackBar(
+                                              content: Text(widget.controller.errorMessage ?? 'Erro ao salvar a compra.'),
+                                              backgroundColor: Colors.redAccent,
+                                            ),
+                                          );
+                                          setStateDialog(() {
+                                            isSaving = false;
+                                          });
+                                        }
+                                      } catch (e) {
+                                        messenger.showSnackBar(
+                                          SnackBar(
+                                            content: Text('Não foi possível ler os itens da nota ainda: $e'),
+                                            backgroundColor: Colors.redAccent,
+                                          ),
+                                        );
+                                        setStateDialog(() {
+                                          isSaving = false;
+                                        });
+                                      }
+                                    },
+                              icon: const Icon(Icons.save, size: 18),
+                              label: const Text('Salvar', style: TextStyle(fontSize: 14)),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.deepPurpleAccent,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  Expanded(
+                    child: InAppWebView(
+                      initialUrlRequest: URLRequest(url: WebUri(url)),
+                      initialSettings: InAppWebViewSettings(
+                        javaScriptEnabled: true,
+                        domStorageEnabled: true,
+                        databaseEnabled: true,
+                        mixedContentMode: MixedContentMode.MIXED_CONTENT_ALWAYS_ALLOW,
+                      ),
+                      onReceivedServerTrustAuthRequest: (controller, challenge) async {
+                        return ServerTrustAuthResponse(action: ServerTrustAuthResponseAction.PROCEED);
+                      },
+                      onWebViewCreated: (controller) {
+                        setStateDialog(() {
+                          webViewController = controller;
+                        });
+                      },
+                      onLoadStop: (controller, loadedUrl) async {
+                        // 1. Inject Auto-fill script & auto-click tab or query button if no captcha
+                        await controller.evaluateJavascript(source: """
+                          (function() {
+                            try {
+                              var urlParams = new URLSearchParams(window.location.search);
+                              var key = urlParams.get('chave') || urlParams.get('chNFe') || urlParams.get('p') || urlParams.get('chKey');
+                              if (!key) {
+                                var match = window.location.href.match(/\\d{44}/);
+                                if (match) key = match[0];
                               }
-                            }
-                            
-                            if (keyInput) {
-                              // If field is empty or doesn't have the full key, fill it
-                              var cleanVal = (keyInput.value || '').replace(/\\D/g, '');
-                              if (cleanVal.length !== 44) {
-                                keyInput.value = key;
-                                keyInput.dispatchEvent(new Event('input', { bubbles: true }));
-                                keyInput.dispatchEvent(new Event('change', { bubbles: true }));
+                              
+                              if (key && key.length === 44) {
+                                var inputs = document.querySelectorAll('input[type="text"], input[type="number"], input:not([type])');
+                                var keyInput = null;
+                                for (var i = 0; i < inputs.length; i++) {
+                                  var input = inputs[i];
+                                  var id = (input.id || '').toLowerCase();
+                                  var name = (input.name || '').toLowerCase();
+                                  var placeholder = (input.placeholder || '').toLowerCase();
+                                  var maxlen = input.getAttribute('maxlength');
+                                  
+                                  if (maxlen === '44' || maxlen === '48' || 
+                                      id.includes('chave') || name.includes('chave') || placeholder.includes('chave') || 
+                                      id.includes('chnfe') || name.includes('chnfe') || placeholder.includes('chnfe') || 
+                                      id.includes('nfe') || name.includes('nfe') || placeholder.includes('nota')) {
+                                    keyInput = input;
+                                    break;
+                                  }
+                                }
                                 
-                                // Auto-focus next field or click submit if no captcha
-                                // Detect if there is a captcha image or iframe on the page
-                                var hasCaptcha = document.querySelector('img[src*="captcha"], img[id*="captcha"], iframe[src*="recaptcha"], iframe[src*="hcaptcha"], div[class*="captcha"], div[id*="captcha"]') !== null;
-                                
-                                if (!hasCaptcha) {
-                                  // Find query/submit button
-                                  var buttons = document.querySelectorAll('input[type="submit"], button, input[type="button"], a.btn');
-                                  for (var j = 0; j < buttons.length; j++) {
-                                    var btn = buttons[j];
-                                    var btnText = (btn.value || btn.innerText || btn.id || '').toLowerCase();
-                                    if (btnText.includes('consultar') || btnText.includes('pesquisar') || btnText.includes('buscar') || btnText.includes('enviar') || btnText.includes('avançar') || btnText.includes('ok')) {
-                                      btn.click();
-                                      break;
+                                if (keyInput) {
+                                  var cleanVal = (keyInput.value || '').replace(/\\D/g, '');
+                                  if (cleanVal.length !== 44) {
+                                    keyInput.value = key;
+                                    keyInput.dispatchEvent(new Event('input', { bubbles: true }));
+                                    keyInput.dispatchEvent(new Event('change', { bubbles: true }));
+                                    
+                                    var hasCaptcha = document.querySelector('img[src*="captcha"], img[id*="captcha"], iframe[src*="recaptcha"], iframe[src*="hcaptcha"], div[class*="captcha"], div[id*="captcha"]') !== null;
+                                    
+                                    if (!hasCaptcha) {
+                                      var buttons = document.querySelectorAll('input[type="submit"], button, input[type="button"], a.btn');
+                                      for (var j = 0; j < buttons.length; j++) {
+                                        var btn = buttons[j];
+                                        var btnText = (btn.value || btn.innerText || btn.id || '').toLowerCase();
+                                        if (btnText.includes('consultar') || btnText.includes('pesquisar') || btnText.includes('buscar') || btnText.includes('enviar') || btnText.includes('avançar') || btnText.includes('ok')) {
+                                          btn.click();
+                                          break;
+                                        }
+                                      }
                                     }
                                   }
                                 }
                               }
-                            }
-                          }
-                          
-                          // 2. Auto-click detail tabs if the page is already loaded but items are hidden in another tab
-                          // Search for tabs/links like "Produtos/Serviços", "Itens", "Produtos e Serviços"
-                          var links = document.querySelectorAll('a, span, li, td');
-                          for (var i = 0; i < links.length; i++) {
-                            var linkText = (links[i].innerText || '').toLowerCase().trim();
-                            if (linkText === 'produtos/serviços' || linkText === 'produtos e serviços' || linkText === 'itens' || linkText === 'itens da nota' || linkText === 'produtos / serviços') {
-                              // Trigger click
-                              links[i].click();
-                            }
-                          }
-                        } catch (e) {
-                          console.log('Autofill error: ' + e);
-                        }
-                      })();
-                    """);
-
-                    // 2. Inject receipt content checker
-                    await webViewController.evaluateJavascript(source: """
-                      (function() {
-                        var attempts = 0;
-                        var checkInterval = setInterval(function() {
-                          attempts++;
-                          
-                          // Check if we have table rows with product items loaded
-                          var hasTableRows = document.querySelectorAll('#tabResult tr, .table tr').length > 1;
-                          if (!hasTableRows) {
-                            var trs = document.querySelectorAll('tr');
-                            var productRows = 0;
-                            for (var i = 0; i < trs.length; i++) {
-                              var text = trs[i].innerText.toLowerCase();
-                              if (text.includes('un') || text.includes('kg') || text.includes('vl. unit') || text.includes('valor unitário')) {
-                                productRows++;
+                              
+                              var links = document.querySelectorAll('a, span, li, td');
+                              for (var i = 0; i < links.length; i++) {
+                                var linkText = (links[i].innerText || '').toLowerCase().trim();
+                                if (linkText === 'produtos/serviços' || linkText === 'produtos e serviços' || linkText === 'itens' || linkText === 'itens da nota' || linkText === 'produtos / serviços') {
+                                  links[i].click();
+                                }
                               }
+                            } catch (e) {
+                              console.log('Autofill error: ' + e);
                             }
-                            hasTableRows = productRows >= 1;
-                          }
-
-                          // Also check if some key indicators of a loaded invoice are present
-                          var text = document.body ? document.body.innerText.toLowerCase() : '';
-                          var hasReceiptIndicators = text.includes('valor a pagar') || 
-                                                    text.includes('qtd. total de itens') || 
-                                                    text.includes('valor total da nota') || 
-                                                    text.includes('total de itens') ||
-                                                    text.includes('produtos/serviços') ||
-                                                    text.includes('informações dos produtos/serviços');
-
-                          if (hasTableRows && hasReceiptIndicators) {
-                            clearInterval(checkInterval);
-                            window.flutter_inappwebview.callHandler('onReceiptLoaded', document.documentElement.outerHTML);
-                          }
-                          
-                          if (attempts > 90) {
-                            clearInterval(checkInterval);
-                          }
-                        }, 1000);
-                      })();
-                    """);
-                  },
-                ),
+                          })();
+                        """);
+                      },
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
-  }
-
-  Future<void> _processHtmlContent(String htmlContent, String url) async {
-    setState(() {
-      _isProcessing = true;
-    });
-
-    try {
-      final purchase = SefazParser.parseHtmlContent(htmlContent, url);
-      if (mounted) {
-        _showConfirmSaveBottomSheet(purchase);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao analisar os dados da nota: $e'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
-        setState(() {
-          _isProcessing = false;
-        });
-        _scannerController.start();
-      }
-    }
   }
 
   void _showConfirmSaveBottomSheet(Purchase purchase) {
@@ -546,10 +555,11 @@ class _ScanScreenState extends State<ScanScreen> {
                       Expanded(
                         child: ElevatedButton(
                           onPressed: () async {
-                            final navigator = Navigator.of(context);
                             final messenger = ScaffoldMessenger.of(context);
+                            final bottomSheetNavigator = Navigator.of(context);
+                            final screenNavigator = Navigator.of(this.context);
                             
-                            navigator.pop(); // Close bottom sheet
+                            bottomSheetNavigator.pop(); // Close bottom sheet
                             
                             // Save to database
                             setState(() {
@@ -566,7 +576,7 @@ class _ScanScreenState extends State<ScanScreen> {
                                     backgroundColor: Colors.green,
                                   ),
                                 );
-                                navigator.pop(true);
+                                screenNavigator.pop(true);
                               } else {
                                 messenger.showSnackBar(
                                   SnackBar(

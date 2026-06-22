@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../controllers/purchase_controller.dart';
 import 'home_screen.dart';
+import 'login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   final PurchaseController controller;
@@ -40,13 +42,17 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
     _animationController.forward();
 
-    // Navigate to HomeScreen after 3 seconds
+    // Navigate after 3 seconds based on Auth State
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted) {
+        final session = Supabase.instance.client.auth.currentSession;
+        Widget nextScreen = session != null 
+            ? HomeScreen(controller: widget.controller)
+            : LoginScreen(controller: widget.controller);
+
         Navigator.of(context).pushReplacement(
           PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) =>
-                HomeScreen(controller: widget.controller),
+            pageBuilder: (context, animation, secondaryAnimation) => nextScreen,
             transitionsBuilder: (context, animation, secondaryAnimation, child) {
               return FadeTransition(
                 opacity: animation,

@@ -1,10 +1,11 @@
 import 'package:flutter/foundation.dart';
 import '../models/purchase.dart';
-import '../services/database_helper.dart';
+import '../services/supabase_helper.dart';
 import '../services/sefaz_parser.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class PurchaseController extends ChangeNotifier {
-  final DatabaseHelper _dbHelper = DatabaseHelper.instance;
+  final SupabaseHelper _dbHelper = SupabaseHelper.instance;
 
   List<Purchase> _purchases = [];
   List<Map<String, dynamic>> _categories = [];
@@ -40,7 +41,8 @@ class PurchaseController extends ChangeNotifier {
 
   Future<void> _loadSettings() async {
     try {
-      final state = await _dbHelper.getSetting('default_state');
+      final prefs = await SharedPreferences.getInstance();
+      final state = prefs.getString('default_state');
       if (state != null) {
         _defaultState = state;
       }
@@ -54,6 +56,7 @@ class PurchaseController extends ChangeNotifier {
     notifyListeners();
 
     try {
+      await _dbHelper.ensureDefaultCategories();
       _purchases = await _dbHelper.getPurchases();
       await _loadCategoriesOnly();
       await _loadSettings();
@@ -67,7 +70,8 @@ class PurchaseController extends ChangeNotifier {
 
   Future<void> updateDefaultState(String state) async {
     try {
-      await _dbHelper.saveSetting('default_state', state);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('default_state', state);
       _defaultState = state;
       notifyListeners();
     } catch (e) {

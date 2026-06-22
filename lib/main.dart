@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'controllers/purchase_controller.dart';
 import 'screens/splash_screen.dart';
 
@@ -11,6 +12,12 @@ void main() async {
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
   ]);
+
+  // Inicializar Supabase
+  await Supabase.initialize(
+    url: 'https://arjnxoergteitvdlavdm.supabase.co',
+    anonKey: 'sb_publishable_xbXUqlKqEfZQneBnSTA4Pg_Mpd1Z-e6',
+  );
 
   // Create state controller instance
   final purchaseController = PurchaseController();
