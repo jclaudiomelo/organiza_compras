@@ -3,18 +3,21 @@ import '../models/purchase.dart';
 import '../services/supabase_helper.dart';
 import '../services/sefaz_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../models/credit_card.dart';
 
 class PurchaseController extends ChangeNotifier {
   final SupabaseHelper _dbHelper = SupabaseHelper.instance;
 
   List<Purchase> _purchases = [];
   List<Map<String, dynamic>> _categories = [];
+  List<CreditCard> _creditCards = [];
   bool _isLoading = false;
   String? _errorMessage;
   String _defaultState = 'SC';
 
   List<Purchase> get purchases => _purchases;
   List<Map<String, dynamic>> get categories => _categories;
+  List<CreditCard> get creditCards => _creditCards;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   String get defaultState => _defaultState;
@@ -58,6 +61,7 @@ class PurchaseController extends ChangeNotifier {
     try {
       await _dbHelper.ensureDefaultCategories();
       _purchases = await _dbHelper.getPurchases();
+      _creditCards = await _dbHelper.getCreditCards();
       await _loadCategoriesOnly();
       await _loadSettings();
     } catch (e) {
@@ -184,6 +188,54 @@ class PurchaseController extends ChangeNotifier {
     } catch (e) {
       _errorMessage = 'Erro ao atualizar categoria: $e';
       notifyListeners();
+    }
+  }
+
+  // Update payment details
+  Future<void> updatePurchasePaymentDetails(int purchaseId, String newMethod, int? creditCardId, int installments) async {
+    try {
+      await _dbHelper.updatePurchasePaymentDetails(purchaseId, newMethod, creditCardId, installments);
+      await loadPurchases();
+    } catch (e) {
+      _errorMessage = 'Erro ao atualizar forma de pagamento: $e';
+      notifyListeners();
+    }
+  }
+
+  // Credit Card Methods
+  Future<bool> addCreditCard(CreditCard card) async {
+    try {
+      await _dbHelper.insertCreditCard(card);
+      await loadPurchases();
+      return true;
+    } catch (e) {
+      _errorMessage = 'Erro ao adicionar cartão: $e';
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> editCreditCard(CreditCard card) async {
+    try {
+      await _dbHelper.updateCreditCard(card);
+      await loadPurchases();
+      return true;
+    } catch (e) {
+      _errorMessage = 'Erro ao atualizar cartão: $e';
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> deleteCreditCard(int id) async {
+    try {
+      await _dbHelper.deleteCreditCard(id);
+      await loadPurchases();
+      return true;
+    } catch (e) {
+      _errorMessage = 'Erro ao excluir cartão: $e';
+      notifyListeners();
+      return false;
     }
   }
 

@@ -147,6 +147,120 @@ class _PurchaseDetailScreenState extends State<PurchaseDetailScreen> {
     );
   }
 
+  void _showPaymentMethodSelector() {
+    final methods = [
+      'Não Informado',
+      'Pix',
+      'Cartão de Crédito',
+      'Cartão de Débito',
+      'Dinheiro',
+      'Vale Alimentação'
+    ];
+    
+    String selectedMethod = _currentPurchase.paymentMethod;
+    int? selectedCreditCardId = _currentPurchase.creditCardId;
+    int selectedInstallments = _currentPurchase.installments;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF16161A),
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return SafeArea(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom,
+                  left: 20, right: 20, top: 20,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('Forma de Pagamento', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 20),
+                    DropdownButtonFormField<String>(
+                      value: methods.contains(selectedMethod) ? selectedMethod : 'Não Informado',
+                      dropdownColor: const Color(0xFF24242B),
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(
+                        labelText: 'Método',
+                        labelStyle: TextStyle(color: Colors.grey),
+                        enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+                        focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.deepPurpleAccent)),
+                      ),
+                      items: methods.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
+                      onChanged: (val) => setModalState(() => selectedMethod = val!),
+                    ),
+                    if (selectedMethod == 'Cartão de Crédito') ...[
+                      const SizedBox(height: 16),
+                      DropdownButtonFormField<int>(
+                        value: widget.controller.creditCards.any((c) => c.id == selectedCreditCardId) ? selectedCreditCardId : null,
+                        dropdownColor: const Color(0xFF24242B),
+                        style: const TextStyle(color: Colors.white),
+                        decoration: const InputDecoration(
+                          labelText: 'Qual Cartão?',
+                          labelStyle: TextStyle(color: Colors.grey),
+                          enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+                          focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.deepPurpleAccent)),
+                        ),
+                        items: widget.controller.creditCards.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
+                        onChanged: (val) => setModalState(() => selectedCreditCardId = val),
+                      ),
+                      const SizedBox(height: 16),
+                      DropdownButtonFormField<int>(
+                        value: selectedInstallments,
+                        dropdownColor: const Color(0xFF24242B),
+                        style: const TextStyle(color: Colors.white),
+                        decoration: const InputDecoration(
+                          labelText: 'Parcelas',
+                          labelStyle: TextStyle(color: Colors.grey),
+                          enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+                          focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.deepPurpleAccent)),
+                        ),
+                        items: List.generate(24, (i) => i + 1).map((i) => DropdownMenuItem(value: i, child: Text('\${i}x'))).toList(),
+                        onChanged: (val) => setModalState(() => selectedInstallments = val!),
+                      ),
+                    ],
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: () async {
+                        if (selectedMethod == 'Cartão de Crédito' && selectedCreditCardId == null) {
+                           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Selecione um cartão.')));
+                           return;
+                        }
+                        int finalInstallments = selectedMethod == 'Cartão de Crédito' ? selectedInstallments : 1;
+                        int? finalCardId = selectedMethod == 'Cartão de Crédito' ? selectedCreditCardId : null;
+                        
+                        await widget.controller.updatePurchasePaymentDetails(_currentPurchase.id!, selectedMethod, finalCardId, finalInstallments);
+                        
+                        final updatedPurchases = widget.controller.purchases;
+                        final currentUpdate = updatedPurchases.firstWhere((p) => p.id == _currentPurchase.id);
+                        setState(() {
+                          _currentPurchase = currentUpdate;
+                        });
+                        if (mounted) Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.deepPurpleAccent,
+                        minimumSize: const Size(double.infinity, 48),
+                      ),
+                      child: const Text('Salvar Alterações', style: TextStyle(color: Colors.white)),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   void _showShareOptionsBottomSheet() {
     showModalBottomSheet(
       context: context,
@@ -496,6 +610,41 @@ class _PurchaseDetailScreenState extends State<PurchaseDetailScreen> {
                     fontFamily: 'monospace',
                     fontSize: 11,
                   ),
+                ),
+                const Divider(color: Colors.white10, height: 32),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'FORMA DE PAGAMENTO:',
+                          style: TextStyle(color: Colors.grey[500], fontSize: 9, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _currentPurchase.paymentMethod == 'Cartão de Crédito' && _currentPurchase.installments > 1
+                              ? '\${_currentPurchase.paymentMethod} (\${_currentPurchase.installments}x)'
+                              : _currentPurchase.paymentMethod,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: _showPaymentMethodSelector,
+                      icon: const Icon(Icons.edit, size: 14, color: Colors.deepPurpleAccent),
+                      label: const Text('Alterar', style: TextStyle(color: Colors.deepPurpleAccent, fontSize: 12)),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: Colors.deepPurpleAccent.withOpacity(0.5)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

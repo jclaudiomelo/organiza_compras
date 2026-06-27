@@ -8,6 +8,10 @@ import 'reports_screen.dart';
 import 'products_screen.dart';
 import 'categories_screen.dart';
 import 'settings_screen.dart';
+import 'settings_screen.dart';
+import 'wallet_screen.dart';
+import 'credit_cards_screen.dart';
+import 'add_manual_expense_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final PurchaseController controller;
@@ -200,10 +204,24 @@ class _HomeScreenState extends State<HomeScreen> {
         final filtered = _filteredPurchases;
         final totalSpent = _calculateTotalSpent(filtered);
         final totalItems = _countTotalItems(filtered);
+        final recentPurchases = widget.controller.purchases.take(10).toList();
 
         return Scaffold(
           backgroundColor: const Color(0xFF0F0E17),
-          body: widget.controller.isLoading
+          floatingActionButton: FloatingActionButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => AddManualExpenseScreen(controller: widget.controller),
+                ),
+              );
+            },
+            backgroundColor: Colors.deepPurpleAccent,
+            child: const Icon(Icons.add, color: Colors.white),
+            tooltip: 'Nova Despesa Manual',
+          ),
+          body: widget.controller.isLoading && widget.controller.purchases.isEmpty 
               ? const Center(child: CircularProgressIndicator(color: Colors.deepPurpleAccent))
               : widget.controller.errorMessage != null
                   ? Center(child: Text(widget.controller.errorMessage!, style: const TextStyle(color: Colors.redAccent)))
@@ -428,6 +446,20 @@ class _HomeScreenState extends State<HomeScreen> {
                                 },
                               ),
                               _buildMenuCard(
+                                icon: Icons.account_balance_wallet_outlined,
+                                title: 'Carteira',
+                                subtitle: 'Controle Mensal',
+                                color: Colors.pinkAccent,
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => WalletScreen(controller: widget.controller),
+                                    ),
+                                  );
+                                },
+                              ),
+                              _buildMenuCard(
                                 icon: Icons.bar_chart_outlined,
                                 title: 'Relatórios',
                                 subtitle: 'Gastos por categoria',
@@ -465,6 +497,20 @@ class _HomeScreenState extends State<HomeScreen> {
                                     context,
                                     MaterialPageRoute(
                                       builder: (context) => CategoriesScreen(controller: widget.controller),
+                                    ),
+                                  );
+                                },
+                              ),
+                              _buildMenuCard(
+                                icon: Icons.credit_card,
+                                title: 'Meus Cartões',
+                                subtitle: 'Gerenciar Limites',
+                                color: Colors.tealAccent,
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => CreditCardsScreen(controller: widget.controller),
                                     ),
                                   );
                                 },

@@ -130,6 +130,42 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _resetPassword() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Por favor, digite seu e-mail acima primeiro.'), backgroundColor: Colors.orange),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      await Supabase.instance.client.auth.resetPasswordForEmail(email);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('E-mail de recuperação enviado! Verifique sua caixa de entrada.')),
+        );
+      }
+    } on AuthException catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error.message), backgroundColor: Colors.red),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro inesperado: $error'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -147,10 +183,16 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
-                Icons.shopping_bag_outlined,
-                color: Colors.deepPurpleAccent,
-                size: 80,
+              Image.asset(
+                'assets/images/logo.png',
+                height: 100,
+                width: 100,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) => const Icon(
+                  Icons.shopping_bag_outlined,
+                  color: Colors.deepPurpleAccent,
+                  size: 80,
+                ),
               ),
               const SizedBox(height: 24),
               Text(
@@ -209,7 +251,18 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 obscureText: true,
               ),
-              const SizedBox(height: 32),
+              if (!_isSignUp)
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: _isLoading ? null : _resetPassword,
+                    child: const Text(
+                      'Esqueceu a senha?',
+                      style: TextStyle(color: Colors.deepPurpleAccent, fontSize: 13),
+                    ),
+                  ),
+                ),
+              SizedBox(height: _isSignUp ? 32 : 16),
               SizedBox(
                 width: double.infinity,
                 height: 56,
@@ -251,9 +304,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     size: 36,
                     color: Colors.white,
                   ),
-                  label: const Text(
-                    'ENTRAR COM GOOGLE',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  label: Text(
+                    _isSignUp ? 'CRIAR CONTA COM GOOGLE' : 'ENTRAR COM GOOGLE',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),

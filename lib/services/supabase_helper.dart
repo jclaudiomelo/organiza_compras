@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/purchase.dart';
 import '../models/purchase_item.dart';
+import '../models/credit_card.dart';
 
 class SupabaseHelper {
   static final SupabaseHelper instance = SupabaseHelper._init();
@@ -32,6 +33,10 @@ class SupabaseHelper {
         'store_name': purchase.storeName,
         'date': purchase.date.toIso8601String(),
         'total_value': purchase.totalValue,
+        'payment_method': purchase.paymentMethod,
+        'credit_card_id': purchase.creditCardId,
+        'installments': purchase.installments,
+        'is_manual': purchase.isManual,
       }).eq('id', purchaseId);
 
       // Delete existing items to re-import
@@ -46,6 +51,10 @@ class SupabaseHelper {
         'store_name': purchase.storeName,
         'date': purchase.date.toIso8601String(),
         'total_value': purchase.totalValue,
+        'payment_method': purchase.paymentMethod,
+        'credit_card_id': purchase.creditCardId,
+        'installments': purchase.installments,
+        'is_manual': purchase.isManual,
       }).select('id').single();
       
       purchaseId = result['id'] as int;
@@ -112,6 +121,54 @@ class SupabaseHelper {
         .from('purchase_items')
         .update({'category': newCategory})
         .eq('id', itemId);
+  }
+
+  Future<void> updatePurchasePaymentDetails(int purchaseId, String method, int? creditCardId, int installments) async {
+    await _supabase
+        .from('purchases')
+        .update({
+          'payment_method': method,
+          'credit_card_id': creditCardId,
+          'installments': installments,
+        })
+        .eq('id', purchaseId);
+  }
+
+  // --- Credit Cards CRUD ---
+  Future<List<CreditCard>> getCreditCards() async {
+    final response = await _supabase.from('credit_cards').select().order('name');
+    return response.map((row) => CreditCard.fromMap(row)).toList();
+  }
+
+  Future<void> insertCreditCard(CreditCard card) async {
+    await _supabase.from('credit_cards').insert({
+      'user_id': _userId,
+      'name': card.name,
+      'color': card.color.toSigned(32),
+      'closing_day': card.closingDay,
+      'due_day': card.dueDay,
+      'limit_amount': card.limitAmount,
+      'card_number': card.cardNumber,
+      'expiration_date': card.expirationDate,
+    });
+  }
+
+  Future<void> updateCreditCard(CreditCard card) async {
+    await _supabase.from('credit_cards').update({
+      'name': card.name,
+      'color': card.color.toSigned(32),
+      'closing_day': card.closingDay,
+      'due_day': card.dueDay,
+      'limit_amount': card.limitAmount,
+      'card_number': card.cardNumber,
+      'expiration_date': card.expirationDate,
+    }).eq('id', card.id!);
+  }
+
+  Future<void> deleteCreditCard(int id) async {
+    // Nullify credit_card_id in purchases before deleting card
+    await _supabase.from('purchases').update({'credit_card_id': null}).eq('credit_card_id', id);
+    await _supabase.from('credit_cards').delete().eq('id', id);
   }
 
   Future<List<Map<String, dynamic>>> getUniqueProducts() async {
