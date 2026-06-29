@@ -251,7 +251,13 @@ class _AddManualExpenseScreenState extends State<AddManualExpenseScreen> {
                     enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
                     focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.deepPurpleAccent)),
                   ),
-                  items: List.generate(24, (i) => i + 1).map((i) => DropdownMenuItem(value: i, child: Text('\${i}x'))).toList(),
+                  items: List.generate(24, (i) => i + 1).map((i) {
+                    final textVal = _valueController.text.replaceAll('R\$', '').replaceAll('.', '').replaceAll(',', '.').trim();
+                    final total = double.tryParse(textVal) ?? 0.0;
+                    final instValue = total / i;
+                    final formattedValue = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(instValue);
+                    return DropdownMenuItem(value: i, child: Text('${i}x de $formattedValue'));
+                  }).toList(),
                   onChanged: (val) => setState(() => _selectedInstallments = val!),
                 ),
               ],

@@ -159,7 +159,7 @@ class _PurchaseDetailScreenState extends State<PurchaseDetailScreen> {
     
     String selectedMethod = _currentPurchase.paymentMethod;
     int? selectedCreditCardId = _currentPurchase.creditCardId;
-    int selectedInstallments = _currentPurchase.installments;
+    int selectedInstallments = _currentPurchase.installments > 0 ? _currentPurchase.installments : 1;
 
     showModalBottomSheet(
       context: context,
@@ -221,7 +221,11 @@ class _PurchaseDetailScreenState extends State<PurchaseDetailScreen> {
                           enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
                           focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.deepPurpleAccent)),
                         ),
-                        items: List.generate(24, (i) => i + 1).map((i) => DropdownMenuItem(value: i, child: Text('\${i}x'))).toList(),
+                        items: List.generate(24, (i) => i + 1).map((i) {
+                          final instValue = _currentPurchase.totalValue / i;
+                          final formattedValue = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format(instValue);
+                          return DropdownMenuItem(value: i, child: Text('${i}x de $formattedValue'));
+                        }).toList(),
                         onChanged: (val) => setModalState(() => selectedInstallments = val!),
                       ),
                     ],
@@ -615,26 +619,29 @@ class _PurchaseDetailScreenState extends State<PurchaseDetailScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'FORMA DE PAGAMENTO:',
-                          style: TextStyle(color: Colors.grey[500], fontSize: 9, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _currentPurchase.paymentMethod == 'Cartão de Crédito' && _currentPurchase.installments > 1
-                              ? '\${_currentPurchase.paymentMethod} (\${_currentPurchase.installments}x)'
-                              : _currentPurchase.paymentMethod,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'FORMA DE PAGAMENTO:',
+                            style: TextStyle(color: Colors.grey[500], fontSize: 9, fontWeight: FontWeight.bold),
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 4),
+                          Text(
+                            _currentPurchase.paymentMethod == 'Cartão de Crédito' && (_currentPurchase.installments ?? 1) > 1
+                                ? '${_currentPurchase.paymentMethod} (${_currentPurchase.installments}x)'
+                                : _currentPurchase.paymentMethod,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
+                    const SizedBox(width: 8),
                     OutlinedButton.icon(
                       onPressed: _showPaymentMethodSelector,
                       icon: const Icon(Icons.edit, size: 14, color: Colors.deepPurpleAccent),

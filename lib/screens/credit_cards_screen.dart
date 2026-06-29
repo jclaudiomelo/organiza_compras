@@ -273,49 +273,40 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
     );
   }
 
-  // Calculate the current invoice amount for a given card based on current month
-  double _calculateCurrentInvoice(CreditCard card) {
+  Map<String, double> _calculateInvoices(CreditCard card) {
     final now = DateTime.now();
-    final closingDateThisMonth = DateTime(now.year, now.month, card.closingDay);
+    double currentInvoiceTotal = 0.0;
+    double nextInvoiceTotal = 0.0;
     
-    // Simplistic rule for "Current Invoice": 
-    // All purchases made on this card before the closing date of the CURRENT month 
-    // that haven't been accounted for in the PREVIOUS month's closing date.
-    final closingDateLastMonth = DateTime(
-      now.month == 1 ? now.year - 1 : now.year, 
-      now.month == 1 ? 12 : now.month - 1, 
-      card.closingDay
-    );
-
-    double invoiceTotal = 0.0;
-    
-    // We iterate over all purchases and find installments that fall into this period
     for (var purchase in widget.controller.purchases) {
       if (purchase.creditCardId == card.id) {
-        // This purchase belongs to this card.
-        // We need to calculate when its installments fall.
         final purchaseDate = purchase.date;
         final installmentValue = purchase.totalValue / purchase.installments;
 
         for (int i = 0; i < purchase.installments; i++) {
-          // The month this installment hits the card depends on the purchase date vs closing date
-          // If purchaseDate is before closingDate of its own month, the 1st installment is in the CURRENT month's due date.
-          // Otherwise, it's pushed to the NEXT month's due date.
-          
           DateTime baseClosingDate = DateTime(purchaseDate.year, purchaseDate.month, card.closingDay);
           int monthOffset = purchaseDate.isAfter(baseClosingDate) ? 1 : 0;
           
-          // The installment hits the invoice of (purchaseDate.month + monthOffset + i)
           DateTime invoiceHitMonth = DateTime(purchaseDate.year, purchaseDate.month + monthOffset + i, 1);
           
+          // Current month invoice
           if (invoiceHitMonth.year == now.year && invoiceHitMonth.month == now.month) {
-            invoiceTotal += installmentValue;
+            currentInvoiceTotal += installmentValue;
+          }
+          
+          // Next month invoice
+          DateTime nextMonth = DateTime(now.year, now.month + 1, 1);
+          if (invoiceHitMonth.year == nextMonth.year && invoiceHitMonth.month == nextMonth.month) {
+            nextInvoiceTotal += installmentValue;
           }
         }
       }
     }
     
-    return invoiceTotal;
+    return {
+      'current': currentInvoiceTotal,
+      'next': nextInvoiceTotal,
+    };
   }
 
   @override
@@ -342,7 +333,7 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
                   itemCount: cards.length,
                   itemBuilder: (context, index) {
                     final card = cards[index];
-                    final invoiceAmount = _calculateCurrentInvoice(card);
+                    final invoices = _calculateInvoices(card);
                     
                     return Container(
                       margin: const EdgeInsets.only(bottom: 16),
@@ -396,13 +387,13 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
                                       ],
                                       const SizedBox(height: 8),
                                       Text(
-                                        'Fechamento: dia ${card.closingDay} • Vencimento: dia ${card.dueDay}',
+                                        'Fechamento: dia \${card.closingDay} • Vencimento: dia \${card.dueDay}',
                                         style: TextStyle(color: Colors.grey[400], fontSize: 12),
                                       ),
                                       if (card.limitAmount != null) ...[
                                         const SizedBox(height: 4),
                                         Text(
-                                          'Limite: ${_currencyFormat.format(card.limitAmount)}',
+                                          'Limite: \${_currencyFormat.format(card.limitAmount)}',
                                           style: TextStyle(color: Colors.grey[500], fontSize: 12),
                                         ),
                                       ],
@@ -435,13 +426,28 @@ class _CreditCardsScreenState extends State<CreditCardsScreen> {
                               color: Color(card.color).withOpacity(0.08),
                               borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(20), bottomRight: Radius.circular(20)),
                             ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            child: Column(
                               children: [
-                                const Text('Fatura Atual (estimativa)', style: TextStyle(color: Colors.white70, fontSize: 13)),
-                                Text(
-                                  _currencyFormat.format(invoiceAmount),
-                                  style: TextStyle(color: Color(card.color), fontSize: 16, fontWeight: FontWeight.bold),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const Text('Fatura Atual (estimativa)', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                                    Text(
+                                      _currencyFormat.format(invoices['current']),
+                                      style: TextStyle(color: Color(card.color), fontSize: 16, fontWeight: FontWeight.bold),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const Text('Próxima Fatura', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                                    Text(
+                                      _currencyFormat.format(invoices['next']),
+                                      style: TextStyle(color: Color(card.color).withOpacity(0.7), fontSize: 13, fontWeight: FontWeight.bold),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
