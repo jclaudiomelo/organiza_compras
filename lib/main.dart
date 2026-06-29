@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:upgrader/upgrader.dart';
 import 'controllers/purchase_controller.dart';
 import 'screens/splash_screen.dart';
 
@@ -65,7 +66,12 @@ class MyApp extends StatelessWidget {
           bodyMedium: TextStyle(color: Colors.white70, fontSize: 14),
         ),
       ),
-      home: SplashScreen(controller: controller),
+      home: UpgradeAlert(
+        upgrader: Upgrader(
+          messages: UpgraderMessages(code: 'pt'), // Forçar mensagens em português
+        ),
+        child: SplashScreen(controller: controller),
+      ),
     );
   }
 }
