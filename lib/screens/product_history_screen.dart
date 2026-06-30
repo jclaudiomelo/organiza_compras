@@ -56,7 +56,14 @@ class _ProductHistoryScreenState extends State<ProductHistoryScreen> {
     // Setup data points for line chart
     List<FlSpot> spots = [];
     for (int i = 0; i < _history.length; i++) {
-      final price = _history[i]['unit_price'] as double;
+      double price = _history[i]['unit_price'] as double;
+      final quantity = (_history[i]['quantity'] as num?)?.toDouble() ?? 1.0;
+      final totalPrice = (_history[i]['total_price'] as num?)?.toDouble() ?? (quantity * price);
+      
+      if (price == totalPrice && quantity != 1.0 && quantity > 0) {
+        price = totalPrice / quantity;
+      }
+      
       spots.add(FlSpot(i.toDouble(), price));
     }
 
@@ -245,10 +252,18 @@ class _ProductHistoryScreenState extends State<ProductHistoryScreen> {
                         (context, index) {
                           // Show list in reverse chronological order
                           final item = _history[_history.length - 1 - index];
-                          final price = item['unit_price'] as double;
+                          double price = item['unit_price'] as double;
                           final dateStr = item['date'] as String;
                           final date = DateTime.tryParse(dateStr) ?? DateTime.now();
                           final storeName = item['store_name'] as String;
+                          
+                          final quantity = (item['quantity'] as num?)?.toDouble() ?? 1.0;
+                          final unit = (item['unit'] as String?) ?? 'UN';
+                          final totalPrice = (item['total_price'] as num?)?.toDouble() ?? (quantity * price);
+
+                          if (price == totalPrice && quantity != 1.0 && quantity > 0) {
+                            price = totalPrice / quantity;
+                          }
 
                           return Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
@@ -292,10 +307,11 @@ class _ProductHistoryScreenState extends State<ProductHistoryScreen> {
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          _dateFormat.format(date),
+                                          '${_dateFormat.format(date)}  •  ${quantity.toStringAsFixed(unit.toUpperCase() == 'KG' ? 3 : 0)} $unit',
                                           style: TextStyle(
-                                            color: Colors.grey[500],
+                                            color: Colors.grey[400],
                                             fontSize: 11,
+                                            fontWeight: FontWeight.w500,
                                           ),
                                         ),
                                       ],
@@ -303,13 +319,25 @@ class _ProductHistoryScreenState extends State<ProductHistoryScreen> {
                                   ),
                                   const SizedBox(width: 8),
                                   // Price
-                                  Text(
-                                    _currencyFormat.format(price),
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        _currencyFormat.format(price),
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      Text(
+                                        'Total: ${_currencyFormat.format(totalPrice)}',
+                                        style: TextStyle(
+                                          color: Colors.grey[500],
+                                          fontSize: 10,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),

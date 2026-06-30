@@ -49,7 +49,7 @@ class SefazParser {
     'MG': 'https://portalsped.fazenda.mg.gov.br/portalnfce/sistema/consulta.xhtml?p={key}',
     'PA': 'https://app.sefa.pa.gov.br/nfce/consulta?p={key}',
     'PB': 'https://www.sefaz.pb.gov.br/nfce/consulta?p={key}',
-    'PR': 'http://www.fazenda.pr.gov.br/nfce/consulta?p={key}',
+    'PR': 'http://www.fazenda.pr.gov.br/nfce/qrcode?p={key}',
     'PE': 'https://nfce.sefaz.pe.gov.br/nfce/consulta?p={key}',
     'PI': 'https://www.sefaz.pi.gov.br/nfce/consulta?p={key}',
     'RJ': 'https://www4.fazenda.rj.gov.br/consultaNFCe/QRCode?p={key}',
@@ -58,7 +58,7 @@ class SefazParser {
     'RO': 'https://www.sefaz.ro.gov.br/nfce/consulta?p={key}',
     'RR': 'https://www.sefaz.rr.gov.br/nfce/consulta?p={key}',
     'SC': 'https://sistemas.sef.sc.gov.br/nfce/portal/consultanfce.aspx?p={key}',
-    'SP': 'https://www.nfce.fazenda.sp.gov.br/NFCePortal/Paginas/ConsultaPublica.aspx?chNFe={key}',
+    'SP': 'https://www.nfce.fazenda.sp.gov.br/consulta?chNFe={key}',
     'SE': 'http://www.sefaz.se.gov.br/nfce/consulta?p={key}',
     'TO': 'https://www.sefaz.to.gov.br/nfce/consulta?p={key}',
   };
@@ -420,6 +420,24 @@ class SefazParser {
       totalPrice = double.tryParse(cleanVal) ?? 0.0;
     }
 
+    // Regex fallbacks if selectors failed or unitPrice incorrectly equals totalPrice
+    final rowText = row.text;
+    if (unitPrice == 0.0 || (unitPrice == totalPrice && quantity != 1.0)) {
+      final match = RegExp(r'(?:Vl\.\s*Unit\.:?|Vlr\.\s*Unit\.:?)\s*([\d,.]+)', caseSensitive: false).firstMatch(rowText);
+      if (match != null) {
+        final cleanVal = match.group(1)!.replaceAll('.', '').replaceAll(',', '.');
+        unitPrice = double.tryParse(cleanVal) ?? unitPrice;
+      }
+    }
+    
+    if (totalPrice == 0.0) {
+      final match = RegExp(r'(?:Vl\.\s*Total:?|Valor:?)\s*([\d,.]+)', caseSensitive: false).firstMatch(rowText);
+      if (match != null) {
+        final cleanVal = match.group(1)!.replaceAll('.', '').replaceAll(',', '.');
+        totalPrice = double.tryParse(cleanVal) ?? totalPrice;
+      }
+    }
+
     if (totalPrice == 0.0 && unitPrice > 0) {
       totalPrice = quantity * unitPrice;
     }
@@ -448,7 +466,13 @@ class SefazParser {
       'leite', 'pao', 'pão', 'arroz', 'feijao', 'feijão', 'macarrao', 'carne', 'frango', 'peixe',
       'queijo', 'presunto', 'biscoito', 'bolacha', 'oleo', 'sal', 'acucar', 'açúcar', 'cafe', 'café',
       'iogurte', 'manteiga', 'banana', 'maca', 'maçã', 'tomate', 'cebola', 'alho', 'batata',
-      'farinha', 'molho', 'oleo', 'azeite', 'ovos', 'ovo', 'chocolate', 'sorvete', 'doce', 'pizz'
+      'farinha', 'molho', 'oleo', 'azeite', 'ovos', 'ovo', 'chocolate', 'sorvete', 'doce', 'pizz',
+      'salsicha', 'linguica', 'linguiça', 'bacon', 'nuggets', 'hamburguer', 'lasanha', 'iogurt',
+      'requeijao', 'requeijão', 'maionese', 'ketchup', 'mostarda', 'milho', 'ervilha', 'azeitona',
+      'atum', 'sardinha', 'salgadinho', 'pipoca', 'amendoim', 'cereal', 'aveia', 'granola',
+      'mel', 'geleia', 'nutella', 'bombom', 'bala', 'chiclete', 'suplemento', 'whey', 'coxinha',
+      'pao de queijo', 'coxa', 'sobrecoxa', 'peito', 'alcatra', 'picanha', 'maminha', 'fruta',
+      'verdura', 'legume', 'cenoura', 'beterraba', 'alface', 'repolho', 'brocolis', 'brócolis'
     ])) {
       return 'Alimentação';
     }
@@ -456,7 +480,10 @@ class SefazParser {
     // Drinks (Bebidas)
     if (_matches(name, [
       'cerveja', 'refrigerante', 'coca', 'fanta', 'guarana', 'guaraná', 'suco', 'agua', 'água',
-      'vinho', 'vodka', 'energetico', 'energético', 'chopp', 'rum', 'whisky', 'tubaína'
+      'vinho', 'vodka', 'energetico', 'energético', 'chopp', 'rum', 'whisky', 'tubaína',
+      'gin', 'tequila', 'licor', 'cachaça', 'cachaca', 'pinga', 'champagne', 'espumante',
+      'gatorade', 'isotônico', 'isotonico', 'cha', 'chá', 'nectar', 'néctar', 'refresco',
+      'ice', 'skol', 'brahma', 'heineken', 'amstel', 'budweiser', 'corona', 'stella'
     ])) {
       return 'Bebidas';
     }
@@ -464,7 +491,10 @@ class SefazParser {
     // Cleaning (Limpeza)
     if (_matches(name, [
       'amaciante', 'sabao', 'sabão', 'detergente', 'desinfetante', 'agua sanitaria', 'cloro',
-      'esponja', 'limpador', 'lustra', 'alvejante', 'sabao em po', 'sabonete liq', 'veja', 'omom'
+      'esponja', 'limpador', 'lustra', 'alvejante', 'sabao em po', 'sabonete liq', 'veja', 'omom',
+      'candida', 'cândida', 'rodo', 'vassoura', 'pano', 'flanela', 'balde', 'lixeira', 'saco de lixo',
+      'sapolio', 'sapólio', 'multiuso', 'desengordurante', 'limpa vidro', 'limpa piso', 'cera',
+      'inseticida', 'repelente', 'mata inseto', 'bom ar', 'aromatizante', 'odorizador', 'naftalina'
     ])) {
       return 'Limpeza';
     }
@@ -473,7 +503,11 @@ class SefazParser {
     if (_matches(name, [
       'sabonete', 'shampoo', 'xampu', 'condicionador', 'pasta de dente', 'creme dental',
       'fio dental', 'desodorante', 'papel higienico', 'papel higiênico', 'escova', 'gilete',
-      'lamina', 'absorvente', 'fralda', 'cotonete', 'algodao'
+      'lamina', 'absorvente', 'fralda', 'cotonete', 'algodao', 'enxaguante', 'antisseptico',
+      'álcool', 'alcool', 'gel', 'creme', 'hidratante', 'protetor solar', 'bronzeador',
+      'maquiagem', 'batom', 'esmalte', 'acetona', 'lixa', 'pinça', 'pente', 'escova de cabelo',
+      'barbeador', 'creme de barbear', 'pos barba', 'pós barba', 'talco', 'lenço umedecido',
+      'pomada', 'curativo', 'band-aid', 'preservativo', 'camisinha', 'lubrificante'
     ])) {
       return 'Higiene';
     }

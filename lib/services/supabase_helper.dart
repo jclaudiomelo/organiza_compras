@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/purchase.dart';
 import '../models/purchase_item.dart';
@@ -190,7 +191,7 @@ class SupabaseHelper {
   Future<List<Map<String, dynamic>>> getProductPriceHistory(String productName) async {
     final response = await _supabase
         .from('purchase_items')
-        .select('unit_price, purchases!inner(date, store_name)')
+        .select('unit_price, quantity, unit, total_price, purchases!inner(date, store_name)')
         .eq('name', productName)
         .order('purchases(date)', ascending: true);
         
@@ -198,6 +199,9 @@ class SupabaseHelper {
       final purchase = row['purchases'] as Map<String, dynamic>;
       return {
         'unit_price': row['unit_price'],
+        'quantity': row['quantity'],
+        'unit': row['unit'],
+        'total_price': row['total_price'],
         'date': purchase['date'],
         'store_name': purchase['store_name'],
       };
@@ -245,11 +249,11 @@ class SupabaseHelper {
     final existing = await getCategories();
     if (existing.isEmpty) {
       await _supabase.from('categories').insert([
-        {'user_id': _userId, 'name': 'Alimentação', 'color': 0xFF2ECC71.toSigned(32), 'icon_code': 58729},
-        {'user_id': _userId, 'name': 'Bebidas', 'color': 0xFF3498DB.toSigned(32), 'icon_code': 58286},
-        {'user_id': _userId, 'name': 'Limpeza', 'color': 0xFFE67E22.toSigned(32), 'icon_code': 984370},
-        {'user_id': _userId, 'name': 'Higiene', 'color': 0xFFE91E63.toSigned(32), 'icon_code': 58980},
-        {'user_id': _userId, 'name': 'Outros', 'color': 0xFF95A5A6.toSigned(32), 'icon_code': 60233},
+        {'user_id': _userId, 'name': 'Alimentação', 'color': 0xFF2ECC71.toSigned(32), 'icon_code': Icons.shopping_cart.codePoint},
+        {'user_id': _userId, 'name': 'Bebidas', 'color': 0xFF3498DB.toSigned(32), 'icon_code': Icons.wine_bar.codePoint},
+        {'user_id': _userId, 'name': 'Limpeza', 'color': 0xFFE67E22.toSigned(32), 'icon_code': Icons.cleaning_services.codePoint},
+        {'user_id': _userId, 'name': 'Higiene', 'color': 0xFFE91E63.toSigned(32), 'icon_code': Icons.sanitizer.codePoint},
+        {'user_id': _userId, 'name': 'Outros', 'color': 0xFF95A5A6.toSigned(32), 'icon_code': Icons.category.codePoint},
       ]);
     }
   }

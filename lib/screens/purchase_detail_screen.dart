@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import '../models/purchase.dart';
 import '../models/purchase_item.dart';
 import '../controllers/purchase_controller.dart';
+import 'product_history_screen.dart';
 
 class PurchaseDetailScreen extends StatefulWidget {
   final Purchase purchase;
@@ -684,12 +685,28 @@ class _PurchaseDetailScreenState extends State<PurchaseDetailScreen> {
 
                 return Container(
                   margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
+                  child: Material(
                     color: const Color(0xFF16161A),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.grey.withOpacity(0.04)),
-                  ),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ProductHistoryScreen(
+                              productName: item.name,
+                              controller: widget.controller,
+                            ),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.grey.withOpacity(0.04)),
+                        ),
                   child: Row(
                     children: [
                       // Circular Icon based on Category
@@ -724,11 +741,26 @@ class _PurchaseDetailScreenState extends State<PurchaseDetailScreen> {
                             const SizedBox(height: 6),
                             Row(
                               children: [
-                                Text(
-                                  '${item.quantity.toStringAsFixed(item.unit == 'KG' ? 3 : 0)} ${item.unit} x ${_currencyFormat.format(item.unitPrice)}',
-                                  style: TextStyle(
-                                    color: Colors.grey[500],
-                                    fontSize: 11,
+                                Expanded(
+                                  child: Builder(
+                                    builder: (context) {
+                                      // Fix for corrupted DB entries where unitPrice was stored as totalPrice
+                                      double displayUnitPrice = item.unitPrice;
+                                      if (item.unitPrice == item.totalPrice && item.quantity != 1.0 && item.quantity > 0) {
+                                        displayUnitPrice = item.totalPrice / item.quantity;
+                                      }
+                                      
+                                      return Text(
+                                        item.unit.toUpperCase() == 'KG'
+                                            ? '${item.quantity.toStringAsFixed(3)} KG (${_currencyFormat.format(displayUnitPrice)})'
+                                            : '${item.quantity.toStringAsFixed(0)} ${item.unit} x ${_currencyFormat.format(displayUnitPrice)}',
+                                        style: TextStyle(
+                                          color: Colors.grey[400],
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      );
+                                    }
                                   ),
                                 ),
                                 const SizedBox(width: 10),
@@ -777,7 +809,10 @@ class _PurchaseDetailScreenState extends State<PurchaseDetailScreen> {
                       ),
                     ],
                   ),
-                );
+                ),
+              ),
+            ),
+          );
               },
             ),
           ),

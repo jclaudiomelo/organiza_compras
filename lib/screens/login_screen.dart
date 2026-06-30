@@ -134,7 +134,10 @@ class _LoginScreenState extends State<LoginScreen> {
     final email = _emailController.text.trim();
     if (email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Por favor, digite seu e-mail acima primeiro.'), backgroundColor: Colors.orange),
+        const SnackBar(
+          content: Text('Por favor, digite seu e-mail acima primeiro.'),
+          backgroundColor: Colors.orange,
+        ),
       );
       return;
     }
@@ -144,7 +147,11 @@ class _LoginScreenState extends State<LoginScreen> {
       await Supabase.instance.client.auth.resetPasswordForEmail(email);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('E-mail de recuperação enviado! Verifique sua caixa de entrada.')),
+          const SnackBar(
+            content: Text(
+              'E-mail de recuperação enviado! Verifique sua caixa de entrada.',
+            ),
+          ),
         );
       }
     } on AuthException catch (error) {
@@ -156,7 +163,10 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro inesperado: $error'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('Erro inesperado: $error'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {
@@ -176,7 +186,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0E17),
+      backgroundColor: Colors.black,
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -185,8 +195,8 @@ class _LoginScreenState extends State<LoginScreen> {
             children: [
               Image.asset(
                 'assets/images/logo.png',
-                height: 100,
-                width: 100,
+                height: 240,
+                width: 240,
                 fit: BoxFit.contain,
                 errorBuilder: (context, error, stackTrace) => const Icon(
                   Icons.shopping_bag_outlined,
@@ -194,24 +204,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   size: 80,
                 ),
               ),
-              const SizedBox(height: 24),
-              Text(
-                _isSignUp ? 'Criar Conta' : 'Bem-vindo de volta',
-                style: const TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Organiza Compras',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.white.withOpacity(0.7),
-                ),
-              ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 48),
               TextField(
                 controller: _emailController,
                 style: const TextStyle(color: Colors.white),
@@ -221,8 +214,19 @@ class _LoginScreenState extends State<LoginScreen> {
                   filled: true,
                   fillColor: const Color(0xFF16161A),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(16),
                     borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: const BorderSide(
+                      color: Colors.deepPurpleAccent,
+                      width: 1.5,
+                    ),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    vertical: 20,
+                    horizontal: 16,
                   ),
                   prefixIcon: const Icon(
                     Icons.email_outlined,
@@ -231,7 +235,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 keyboardType: TextInputType.emailAddress,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               TextField(
                 controller: _passwordController,
                 style: const TextStyle(color: Colors.white),
@@ -241,8 +245,19 @@ class _LoginScreenState extends State<LoginScreen> {
                   filled: true,
                   fillColor: const Color(0xFF16161A),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(16),
                     borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: const BorderSide(
+                      color: Colors.deepPurpleAccent,
+                      width: 1.5,
+                    ),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    vertical: 20,
+                    horizontal: 16,
                   ),
                   prefixIcon: const Icon(
                     Icons.lock_outline,
@@ -258,7 +273,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     onPressed: _isLoading ? null : _resetPassword,
                     child: const Text(
                       'Esqueceu a senha?',
-                      style: TextStyle(color: Colors.deepPurpleAccent, fontSize: 13),
+                      style: TextStyle(
+                        color: Colors.deepPurpleAccent,
+                        fontSize: 13,
+                      ),
                     ),
                   ),
                 ),
@@ -270,8 +288,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   onPressed: _isLoading ? null : _authenticate,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.deepPurpleAccent,
+                    elevation: 8,
+                    shadowColor: Colors.deepPurpleAccent.withOpacity(0.4),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(16),
                     ),
                   ),
                   child: _isLoading
@@ -294,9 +314,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   onPressed: _isLoading ? null : _googleSignIn,
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.white,
-                    side: const BorderSide(color: Colors.white30),
+                    side: const BorderSide(color: Colors.white24, width: 1.5),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(16),
                     ),
                   ),
                   icon: const Icon(
@@ -306,7 +326,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   label: Text(
                     _isSignUp ? 'CRIAR CONTA COM GOOGLE' : 'ENTRAR COM GOOGLE',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),

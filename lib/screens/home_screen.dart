@@ -7,7 +7,8 @@ import 'purchase_detail_screen.dart';
 import 'reports_screen.dart';
 import 'products_screen.dart';
 import 'categories_screen.dart';
-import 'settings_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'login_screen.dart';
 import 'settings_screen.dart';
 import 'wallet_screen.dart';
 import 'credit_cards_screen.dart';
@@ -208,19 +209,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
         return Scaffold(
           backgroundColor: const Color(0xFF0F0E17),
-          floatingActionButton: FloatingActionButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => AddManualExpenseScreen(controller: widget.controller),
-                ),
-              );
-            },
-            backgroundColor: Colors.deepPurpleAccent,
-            child: const Icon(Icons.add, color: Colors.white),
-            tooltip: 'Nova Despesa Manual',
-          ),
           body: widget.controller.isLoading && widget.controller.purchases.isEmpty 
               ? const Center(child: CircularProgressIndicator(color: Colors.deepPurpleAccent))
               : widget.controller.errorMessage != null
@@ -295,16 +283,39 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ),
                                 ),
                                 const Spacer(),
-                                IconButton(
+                                PopupMenuButton<String>(
                                   icon: const Icon(Icons.settings_outlined, color: Colors.white70, size: 24),
-                                  onPressed: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => SettingsScreen(controller: widget.controller),
-                                      ),
-                                    );
+                                  color: const Color(0xFF16161A),
+                                  tooltip: 'Opções',
+                                  onSelected: (value) async {
+                                    if (value == 'settings') {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => SettingsScreen(controller: widget.controller),
+                                        ),
+                                      );
+                                    } else if (value == 'logout') {
+                                      await Supabase.instance.client.auth.signOut();
+                                      if (mounted) {
+                                        Navigator.pushAndRemoveUntil(
+                                          context,
+                                          MaterialPageRoute(builder: (context) => LoginScreen(controller: widget.controller)),
+                                          (route) => false,
+                                        );
+                                      }
+                                    }
                                   },
+                                  itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                                    const PopupMenuItem<String>(
+                                      value: 'settings',
+                                      child: Text('Configurações', style: TextStyle(color: Colors.white)),
+                                    ),
+                                    const PopupMenuItem<String>(
+                                      value: 'logout',
+                                      child: Text('Sair', style: TextStyle(color: Colors.redAccent)),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),

@@ -50,33 +50,25 @@ class _ProductsScreenState extends State<ProductsScreen> {
     });
   }
 
-  Color _getCategoryColor(String category) {
-    switch (category) {
-      case 'Alimentação':
-        return Colors.greenAccent;
-      case 'Bebidas':
-        return Colors.blueAccent;
-      case 'Limpeza':
-        return Colors.orangeAccent;
-      case 'Higiene':
-        return Colors.pinkAccent;
-      default:
-        return Colors.grey;
+  Color _getCategoryColor(String categoryName) {
+    try {
+      final data = widget.controller.categories.firstWhere(
+        (c) => c['name'] == categoryName,
+      );
+      return Color(data['color'] as int);
+    } catch (_) {
+      return Colors.blueGrey;
     }
   }
 
-  IconData _getCategoryIcon(String category) {
-    switch (category) {
-      case 'Alimentação':
-        return Icons.restaurant;
-      case 'Bebidas':
-        return Icons.local_drink;
-      case 'Limpeza':
-        return Icons.clean_hands;
-      case 'Higiene':
-        return Icons.bubble_chart;
-      default:
-        return Icons.shopping_bag;
+  IconData _getCategoryIcon(String categoryName) {
+    try {
+      final data = widget.controller.categories.firstWhere(
+        (c) => c['name'] == categoryName,
+      );
+      return IconData(data['icon_code'] as int, fontFamily: 'MaterialIcons');
+    } catch (_) {
+      return Icons.shopping_bag;
     }
   }
 

@@ -75,13 +75,20 @@ class DatabaseHelper {
     ''');
 
     final batch = db.batch();
-    batch.insert('categories', {'name': 'Alimentação', 'color': 0xFF2ECC71, 'icon_code': 58729}, conflictAlgorithm: ConflictAlgorithm.ignore);
-    batch.insert('categories', {'name': 'Bebidas', 'color': 0xFF3498DB, 'icon_code': 58286}, conflictAlgorithm: ConflictAlgorithm.ignore);
+    batch.insert('categories', {'name': 'Alimentação', 'color': 0xFF2ECC71, 'icon_code': 58828}, conflictAlgorithm: ConflictAlgorithm.ignore);
+    batch.insert('categories', {'name': 'Bebidas', 'color': 0xFF3498DB, 'icon_code': 61530}, conflictAlgorithm: ConflictAlgorithm.ignore);
     batch.insert('categories', {'name': 'Limpeza', 'color': 0xFFE67E22, 'icon_code': 984370}, conflictAlgorithm: ConflictAlgorithm.ignore);
-    batch.insert('categories', {'name': 'Higiene', 'color': 0xFFE91E63, 'icon_code': 58980}, conflictAlgorithm: ConflictAlgorithm.ignore);
-    batch.insert('categories', {'name': 'Outros', 'color': 0xFF95A5A6, 'icon_code': 60233}, conflictAlgorithm: ConflictAlgorithm.ignore);
+    batch.insert('categories', {'name': 'Higiene', 'color': 0xFFE91E63, 'icon_code': 61980}, conflictAlgorithm: ConflictAlgorithm.ignore);
+    batch.insert('categories', {'name': 'Outros', 'color': 0xFF95A5A6, 'icon_code': 57672}, conflictAlgorithm: ConflictAlgorithm.ignore);
     batch.insert('settings', {'key': 'default_state', 'value': 'SC'}, conflictAlgorithm: ConflictAlgorithm.ignore);
     await batch.commit();
+
+    // Force update the default icons to the new standard for existing databases
+    await db.execute("UPDATE categories SET icon_code = 58828 WHERE name = 'Alimentação'");
+    await db.execute("UPDATE categories SET icon_code = 61530 WHERE name = 'Bebidas'");
+    await db.execute("UPDATE categories SET icon_code = 984370 WHERE name = 'Limpeza'");
+    await db.execute("UPDATE categories SET icon_code = 61980 WHERE name = 'Higiene'");
+    await db.execute("UPDATE categories SET icon_code = 57672 WHERE name = 'Outros'");
   }
 
   Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -96,11 +103,11 @@ class DatabaseHelper {
       ''');
 
       final batch = db.batch();
-      batch.insert('categories', {'name': 'Alimentação', 'color': 0xFF2ECC71, 'icon_code': 58729}, conflictAlgorithm: ConflictAlgorithm.ignore);
-      batch.insert('categories', {'name': 'Bebidas', 'color': 0xFF3498DB, 'icon_code': 58286}, conflictAlgorithm: ConflictAlgorithm.ignore);
+      batch.insert('categories', {'name': 'Alimentação', 'color': 0xFF2ECC71, 'icon_code': 58828}, conflictAlgorithm: ConflictAlgorithm.ignore);
+      batch.insert('categories', {'name': 'Bebidas', 'color': 0xFF3498DB, 'icon_code': 61530}, conflictAlgorithm: ConflictAlgorithm.ignore);
       batch.insert('categories', {'name': 'Limpeza', 'color': 0xFFE67E22, 'icon_code': 984370}, conflictAlgorithm: ConflictAlgorithm.ignore);
-      batch.insert('categories', {'name': 'Higiene', 'color': 0xFFE91E63, 'icon_code': 58980}, conflictAlgorithm: ConflictAlgorithm.ignore);
-      batch.insert('categories', {'name': 'Outros', 'color': 0xFF95A5A6, 'icon_code': 60233}, conflictAlgorithm: ConflictAlgorithm.ignore);
+      batch.insert('categories', {'name': 'Higiene', 'color': 0xFFE91E63, 'icon_code': 61980}, conflictAlgorithm: ConflictAlgorithm.ignore);
+      batch.insert('categories', {'name': 'Outros', 'color': 0xFF95A5A6, 'icon_code': 57672}, conflictAlgorithm: ConflictAlgorithm.ignore);
       await batch.commit();
     }
 

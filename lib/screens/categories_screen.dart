@@ -23,16 +23,38 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
   ];
 
   final List<IconData> _availableIcons = [
+    // Groceries & Food
+    Icons.shopping_cart,
+    Icons.shopping_basket,
     Icons.restaurant,
+    Icons.fastfood,
+    Icons.local_pizza,
+    Icons.bakery_dining,
+    Icons.icecream,
+    Icons.egg,
+    Icons.apple,
+    Icons.set_meal, // Fish/Seafood
+    Icons.kebab_dining, // Meat
+    // Drinks
+    Icons.local_cafe,
     Icons.local_drink,
+    Icons.sports_bar, // Beer
+    Icons.wine_bar, // Wine
+    Icons.liquor, // Spirits
+    // Cleaning & Hygiene
     Icons.cleaning_services,
-    Icons.bubble_chart,
+    Icons.sanitizer,
+    Icons.bathtub,
+    Icons.face_retouching_natural, // Cosmetics/Beauty
+    // Others
+    Icons.pets, // Pet supplies
+    Icons.child_care, // Baby supplies
+    Icons.kitchen, // Kitchenware
+    Icons.medical_services, // Pharmacy/Health
+    Icons.category,
     Icons.shopping_bag,
     Icons.home,
     Icons.directions_car,
-    Icons.local_pharmacy,
-    Icons.laptop,
-    Icons.pets,
     Icons.card_giftcard,
     Icons.build,
   ];
@@ -186,81 +208,67 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                     const Text('Selecione uma Cor:', style: TextStyle(color: Colors.white70, fontSize: 13)),
                     const SizedBox(height: 10),
                     // Color Grid
-                    SizedBox(
-                      height: 50,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: _availableColors.length,
-                        itemBuilder: (context, index) {
-                          final colValue = _availableColors[index];
-                          final isColSelected = selectedColor == colValue;
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 10.0),
-                            child: InkWell(
-                              onTap: () {
-                                setDialogState(() {
-                                  selectedColor = colValue;
-                                });
-                              },
-                              child: Container(
-                                width: 36,
-                                height: 36,
-                                decoration: BoxDecoration(
-                                  color: Color(colValue),
-                                  shape: BoxShape.circle,
-                                  border: isColSelected
-                                      ? Border.all(color: Colors.white, width: 3)
-                                      : null,
-                                ),
-                              ),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: _availableColors.map((colValue) {
+                        final isColSelected = selectedColor == colValue;
+                        return InkWell(
+                          onTap: () {
+                            setDialogState(() {
+                              selectedColor = colValue;
+                            });
+                          },
+                          child: Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: Color(colValue),
+                              shape: BoxShape.circle,
+                              border: isColSelected
+                                  ? Border.all(color: Colors.white, width: 3)
+                                  : null,
                             ),
-                          );
-                        },
-                      ),
+                          ),
+                        );
+                      }).toList(),
                     ),
                     const SizedBox(height: 20),
                     // Icon selection title
                     const Text('Selecione um Ícone:', style: TextStyle(color: Colors.white70, fontSize: 13)),
                     const SizedBox(height: 10),
                     // Icon Grid
-                    SizedBox(
-                      height: 50,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: _availableIcons.length,
-                        itemBuilder: (context, index) {
-                          final iconData = _availableIcons[index];
-                          final isIconSelected = selectedIconCode == iconData.codePoint;
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 10.0),
-                            child: InkWell(
-                              onTap: () {
-                                setDialogState(() {
-                                  selectedIconCode = iconData.codePoint;
-                                });
-                              },
-                              child: Container(
-                                width: 40,
-                                height: 40,
-                                decoration: BoxDecoration(
-                                  color: isIconSelected
-                                      ? Colors.deepPurpleAccent.withOpacity(0.3)
-                                      : const Color(0xFF0F0E17),
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: isIconSelected
-                                      ? Border.all(color: Colors.deepPurpleAccent, width: 2)
-                                      : null,
-                                ),
-                                child: Icon(
-                                  iconData,
-                                  color: isIconSelected ? Colors.white : Colors.grey,
-                                  size: 20,
-                                ),
-                              ),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: _availableIcons.map((iconData) {
+                        final isIconSelected = selectedIconCode == iconData.codePoint;
+                        return InkWell(
+                          onTap: () {
+                            setDialogState(() {
+                              selectedIconCode = iconData.codePoint;
+                            });
+                          },
+                          child: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: isIconSelected
+                                  ? Colors.deepPurpleAccent.withOpacity(0.3)
+                                  : const Color(0xFF0F0E17),
+                              borderRadius: BorderRadius.circular(10),
+                              border: isIconSelected
+                                  ? Border.all(color: Colors.deepPurpleAccent, width: 2)
+                                  : null,
                             ),
-                          );
-                        },
-                      ),
+                            child: Icon(
+                              iconData,
+                              color: isIconSelected ? Colors.white : Colors.grey,
+                              size: 20,
+                            ),
+                          ),
+                        );
+                      }).toList(),
                     ),
                   ],
                 ),
